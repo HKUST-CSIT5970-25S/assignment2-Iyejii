@@ -21,6 +21,10 @@ import java.io.InputStreamReader;
 import java.net.URI;
 import java.util.*;
 
+import hk.ust.csit5970.CORStripes.CORStripesCombiner2;
+import hk.ust.csit5970.CORStripes.CORStripesMapper2;
+import hk.ust.csit5970.CORStripes.CORStripesReducer2;
+
 /**
  * Compute the bigram count using "pairs" approach
  */
