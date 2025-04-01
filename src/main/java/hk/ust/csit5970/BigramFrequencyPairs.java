@@ -17,7 +17,9 @@ import org.apache.hadoop.fs.Path;
 import org.apache.hadoop.io.FloatWritable;
 import org.apache.hadoop.io.IntWritable;
 import org.apache.hadoop.io.LongWritable;
+import org.apache.hadoop.io.NullWritable;
 import org.apache.hadoop.io.Text;
+import org.apache.hadoop.mapred.TestMiniMRClientCluster.MyReducer;
 import org.apache.hadoop.mapreduce.Job;
 import org.apache.hadoop.mapreduce.Mapper;
 import org.apache.hadoop.mapreduce.Partitioner;
@@ -53,6 +55,19 @@ public class BigramFrequencyPairs extends Configured implements Tool {
 			/*
 			 * TODO: Your implementation goes here.
 			 */
+			String preWord = words[0];
+			int len = words.length;
+			for (int i = 1; i < len; i++) {
+				String curWord = words[i];
+				if (curWord.isEmpty()) {
+					continue;
+				}
+				BIGRAM.set(preWord, curWord);
+				context.write(BIGRAM, ONE);
+				BIGRAM.set(preWord, "*");
+				context.write(BIGRAM, ONE);
+				preWord = curWord;
+			}
 		}
 	}
 
@@ -64,13 +79,31 @@ public class BigramFrequencyPairs extends Configured implements Tool {
 
 		// Reuse objects.
 		private final static FloatWritable VALUE = new FloatWritable();
-
+		private float totalCount = 0;
+		private String curWord = null;
 		@Override
 		public void reduce(PairOfStrings key, Iterable<IntWritable> values,
 				Context context) throws IOException, InterruptedException {
 			/*
 			 * TODO: Your implementation goes here.
 			 */
+			String left = key.getLeftElement();
+			String right = key.getRightElement();
+			int sum = 0;
+			for (IntWritable value : values) {
+				sum += value.get();
+			}
+			if (right.equals("*")) {
+				totalCount = sum;
+				curWord = left;
+				PairOfStrings totalKey = new PairOfStrings(left, "");
+				VALUE.set(sum);
+				context.write(totalKey, VALUE);
+			} else if (curWord != null && curWord.equals(left)) {
+				float relativeFrequency =  sum / totalCount;
+				VALUE.set(relativeFrequency);
+				context.write(key, VALUE);
+			}
 		}
 	}
 	
@@ -84,6 +117,12 @@ public class BigramFrequencyPairs extends Configured implements Tool {
 			/*
 			 * TODO: Your implementation goes here.
 			 */
+			int sum = 0;
+			for (IntWritable value : values) {
+				sum += value.get();
+			}
+			SUM.set(sum);
+			context.write(key, SUM);
 		}
 	}
 
